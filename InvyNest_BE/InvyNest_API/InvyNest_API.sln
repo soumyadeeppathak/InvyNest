@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36327.8 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InvyNest_API", "InvyNest_API.csproj", "{C408E2C5-148B-453C-9622-C35035A6C638}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C408E2C5-148B-453C-9622-C35035A6C638}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C408E2C5-148B-453C-9622-C35035A6C638}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C408E2C5-148B-453C-9622-C35035A6C638}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C408E2C5-148B-453C-9622-C35035A6C638}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {AD789C7B-9C5E-439E-BA44-F7D7E98FACA7}
+	EndGlobalSection
+EndGlobal
