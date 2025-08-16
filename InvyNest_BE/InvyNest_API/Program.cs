@@ -1,4 +1,7 @@
 
+using InvyNest_API.Data;
+using Microsoft.EntityFrameworkCore;
+
 namespace InvyNest_API
 {
     public class Program
@@ -13,6 +16,12 @@ namespace InvyNest_API
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+            // Add DbContext (Postgres)
+            builder.Services.AddDbContext<AppDbContext>(opt =>
+            {
+                var cs = builder.Configuration.GetConnectionString("Postgres");
+                opt.UseNpgsql(cs);
+            });
 
             var app = builder.Build();
 
@@ -29,6 +38,7 @@ namespace InvyNest_API
 
 
             app.MapControllers();
+            app.MapGet("/healthz", () => Results.Ok(new { ok = true, time = DateTime.UtcNow }));
 
             app.Run();
         }
