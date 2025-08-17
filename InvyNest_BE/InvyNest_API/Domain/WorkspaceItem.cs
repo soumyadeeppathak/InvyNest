@@ -10,5 +10,10 @@
 
         public decimal Quantity { get; set; }
         public string? Unit { get; set; } // e.g., pcs, kg
+        // NEW: who has it (email or name) — optional, no user table required
+        public string? Holder { get; set; }
+
+        // NEW: where it is (free text: “Partner’s place”, “Car boot”, etc.)
+        public string? LocationNote { get; set; }
     }
 }

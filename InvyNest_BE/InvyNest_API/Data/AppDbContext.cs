@@ -1,5 +1,7 @@
-﻿using InvyNest_API.Domain;
+﻿using InvyNest_API.Controllers;
+using InvyNest_API.Domain;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection.Emit;
 
 namespace InvyNest_API.Data
 {
@@ -10,6 +12,7 @@ namespace InvyNest_API.Data
         public DbSet<Item> Items => Set<Item>();
         public DbSet<ItemComponent> ItemComponents => Set<ItemComponent>();
         public DbSet<WorkspaceItem> WorkspaceItems => Set<WorkspaceItem>();
+        public DbSet<BomRow> BomRows => Set<BomRow>();
 
         protected override void OnModelCreating(ModelBuilder b)
         {
@@ -28,6 +31,10 @@ namespace InvyNest_API.Data
                 .HasKey(ic => new { ic.ParentItemId, ic.ChildItemId });
 
             b.Entity<ItemComponent>()
+                .Property(ic => ic.ChildCount)         
+                .IsRequired();
+
+            b.Entity<ItemComponent>()
                 .HasOne(ic => ic.ParentItem)
                 .WithMany(i => i.Components)
                 .HasForeignKey(ic => ic.ParentItemId)
@@ -38,6 +45,18 @@ namespace InvyNest_API.Data
                 .WithMany(i => i.PartOf)
                 .HasForeignKey(ic => ic.ChildItemId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            b.Entity<ItemComponent>()
+                .ToTable(t =>
+                    {
+                        t.HasCheckConstraint(
+                            "ck_item_components_no_self",
+                            "\"ParentItemId\" <> \"ChildItemId\"");
+
+                        t.HasCheckConstraint(
+                            "ck_item_components_count_positive",
+                            "\"ChildCount\" > 0");
+                    });
 
             // WorkspaceItem (bridge)
             b.Entity<WorkspaceItem>()
@@ -52,6 +71,19 @@ namespace InvyNest_API.Data
                 .HasOne(wi => wi.Item)
                 .WithMany()
                 .HasForeignKey(wi => wi.ItemId);
+
+            // NEW: helpful indexes for “who has what, where”
+            b.Entity<WorkspaceItem>()
+                .HasIndex(wi => wi.Holder);
+
+            b.Entity<WorkspaceItem>()
+                .HasIndex(wi => wi.LocationNote);
+
+            b.Entity<BomRow>(e =>
+            {
+                e.HasNoKey();
+                e.ToView(null); // not mapped to any table or view
+            });
         }
     }
 }

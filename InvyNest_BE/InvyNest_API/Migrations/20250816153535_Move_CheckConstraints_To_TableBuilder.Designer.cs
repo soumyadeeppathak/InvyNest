@@ -3,6 +3,7 @@ using System;
 using InvyNest_API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace InvyNest_API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250816153535_Move_CheckConstraints_To_TableBuilder")]
+    partial class Move_CheckConstraints_To_TableBuilder
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,33 +24,6 @@ namespace InvyNest_API.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
-            modelBuilder.Entity("InvyNest_API.Controllers.BomRow", b =>
-                {
-                    b.Property<int>("ChildCount")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("ChildItemId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ChildName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("Depth")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("ParentItemId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ParentName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.ToTable((string)null);
-
-                    b.ToView(null, (string)null);
-                });
 
             modelBuilder.Entity("InvyNest_API.Domain.Item", b =>
                 {
@@ -120,12 +96,6 @@ namespace InvyNest_API.Migrations
                     b.Property<Guid>("ItemId")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("Holder")
-                        .HasColumnType("text");
-
-                    b.Property<string>("LocationNote")
-                        .HasColumnType("text");
-
                     b.Property<decimal>("Quantity")
                         .HasColumnType("numeric");
 
@@ -134,11 +104,7 @@ namespace InvyNest_API.Migrations
 
                     b.HasKey("WorkspaceId", "ItemId");
 
-                    b.HasIndex("Holder");
-
                     b.HasIndex("ItemId");
-
-                    b.HasIndex("LocationNote");
 
                     b.ToTable("WorkspaceItems");
                 });
