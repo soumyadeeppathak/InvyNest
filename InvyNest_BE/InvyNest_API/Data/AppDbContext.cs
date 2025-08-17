@@ -13,6 +13,7 @@ namespace InvyNest_API.Data
         public DbSet<ItemComponent> ItemComponents => Set<ItemComponent>();
         public DbSet<WorkspaceItem> WorkspaceItems => Set<WorkspaceItem>();
         public DbSet<BomRow> BomRows => Set<BomRow>();
+        public DbSet<WorkspaceMember> WorkspaceMembers => Set<WorkspaceMember>();
 
         protected override void OnModelCreating(ModelBuilder b)
         {
@@ -84,6 +85,21 @@ namespace InvyNest_API.Data
                 e.HasNoKey();
                 e.ToView(null); // not mapped to any table or view
             });
+
+            //workspacemember
+            b.Entity<WorkspaceMember>()
+                .HasKey(x => new { x.WorkspaceId, x.MemberEmail });
+
+            b.Entity<WorkspaceMember>()
+                .HasOne(x => x.Workspace)
+                .WithMany()
+                .HasForeignKey(x => x.WorkspaceId);
+
+            b.Entity<WorkspaceMember>()
+                .Property(x => x.MemberEmail).HasMaxLength(160).IsRequired();
+
+            b.Entity<WorkspaceMember>()
+                .Property(x => x.Role).HasMaxLength(30).IsRequired();
         }
     }
 }
