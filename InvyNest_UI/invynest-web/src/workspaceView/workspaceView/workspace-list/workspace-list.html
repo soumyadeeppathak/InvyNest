@@ -1,0 +1,13 @@
+<p>workspace-list works!</p>
+<div *ngIf="loading">Loading workspaces...</div>
+<div *ngIf="!loading && workspaces.length === 0">No workspaces found.</div>
+<div *ngIf="!loading && workspaces.length > 0">
+  <h2>Your Workspaces</h2>
+  <ul>
+    <li *ngFor="let ws of workspaces">
+      <strong>{{ ws.name }}</strong>
+      <span *ngIf="ws.role"> - {{ ws.role }}</span>
+      <!-- Add navigation or actions here -->
+    </li>
+  </ul>
+</div>

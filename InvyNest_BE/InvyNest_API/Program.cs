@@ -23,6 +23,17 @@ namespace InvyNest_API
                 opt.UseNpgsql(cs);
             });
 
+            // Add CORS policy for local development (port 4200)
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("LocalDevCors", policy =>
+                {
+                    policy.WithOrigins("http://localhost:4200")
+                          .AllowAnyHeader()
+                          .AllowAnyMethod();
+                });
+            });
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
@@ -33,6 +44,9 @@ namespace InvyNest_API
             }
 
             app.UseHttpsRedirection();
+
+            // Use CORS policy
+            app.UseCors("LocalDevCors");
 
             app.UseAuthorization();
 

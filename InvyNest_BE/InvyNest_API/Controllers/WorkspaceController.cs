@@ -48,5 +48,69 @@ namespace InvyNest_API.Controllers
             await db.SaveChangesAsync();
             return NoContent();
         }
+
+        [HttpGet("{id:guid}/inventory")]
+        public async Task<IActionResult> GetInventory(Guid id, [FromQuery] string? holder, [FromQuery] string? location)
+        {
+            var q = db.WorkspaceItems
+                .Where(wi => wi.WorkspaceId == id)
+                .Select(wi => new
+                {
+                    wi.WorkspaceId,
+                    wi.ItemId,
+                    ItemName = wi.Item.Name,
+                    wi.Quantity,
+                    wi.Unit,
+                    wi.Holder,
+                    wi.LocationNote
+                })
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(holder))
+                q = q.Where(x => x.Holder != null && x.Holder.Contains(holder));
+
+            if (!string.IsNullOrWhiteSpace(location))
+                q = q.Where(x => x.LocationNote != null && x.LocationNote.Contains(location));
+
+            var rows = await q.OrderBy(x => x.ItemName).ToListAsync();
+            return Ok(rows);
+        }
+
+        // POST /api/workspaces/{id}/inventory (add or update a WorkspaceItem row)
+        [HttpPost("{id:guid}/inventory")]
+        public async Task<IActionResult> UpsertInventory(Guid id, [FromBody] UpsertInventoryDto dto)
+        {
+            if (dto.Quantity < 0) return BadRequest("Quantity cannot be negative.");
+            var exists = await db.Items.AnyAsync(i => i.Id == dto.ItemId);
+            if (!exists) return NotFound("Item not found.");
+
+            var row = await db.WorkspaceItems
+                .FirstOrDefaultAsync(wi => wi.WorkspaceId == id && wi.ItemId == dto.ItemId);
+
+            if (row is null)
+            {
+                row = new WorkspaceItem
+                {
+                    WorkspaceId = id,
+                    ItemId = dto.ItemId,
+                    Quantity = dto.Quantity,
+                    Unit = dto.Unit,
+                    Holder = dto.Holder,
+                    LocationNote = dto.LocationNote
+                };
+                db.WorkspaceItems.Add(row);
+            }
+            else
+            {
+                row.Quantity = dto.Quantity;
+                row.Unit = dto.Unit;
+                row.Holder = dto.Holder;
+                row.LocationNote = dto.LocationNote;
+            }
+
+            await db.SaveChangesAsync();
+            return Ok(row);
+        }
+        public record UpsertInventoryDto(Guid ItemId, decimal Quantity, string? Unit, string? Holder, string? LocationNote);
     }
 }
