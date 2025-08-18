@@ -7,110 +7,139 @@ namespace InvyNest_API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class WorkspaceController(AppDbContext db) : Controller
+    public class WorkspaceController : Controller
     {
-        // GET /api/workspaces/mine?email=me@example.com
-        [HttpGet("mine")]
-        public async Task<IActionResult> Mine([FromQuery] string email)
+        private readonly ILogger<WorkspaceController> _logger;
+        private readonly AppDbContext _db;
+
+        public WorkspaceController(ILogger<WorkspaceController> logger, AppDbContext db)
         {
-            if (string.IsNullOrWhiteSpace(email)) return BadRequest("email required.");
-
-            var owned = db.Workspaces
-                .Where(w => w.OwnerEmail == email)
-                .Select(w => new { w.Id, w.Name, Role = "owner" });
-
-            var memberOf = db.WorkspaceMembers
-                .Where(m => m.MemberEmail == email)
-                .Select(m => new { m.Workspace.Id, m.Workspace.Name, Role = m.Role });
-
-            var result = await owned.Union(memberOf)
-                .OrderBy(x => x.Name)
-                .ToListAsync();
-
-            return Ok(result);
+            _logger = logger;
+            _db = db;
         }
 
-        // POST /api/workspaces/{id}/members
-        public record AddMemberDto(string MemberEmail, string Role = "editor");
+        // DTOs
+        public record CreateWorkspaceDto(string Name, string OwnerEmail);
+        public record AddMemberDto(string MemberEmail, string Role);
+        public record WorkspaceDto(Guid Id, string Name, string OwnerEmail, DateTime CreatedAtUtc);
 
+        // POST api/workspace
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] CreateWorkspaceDto dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.OwnerEmail))
+            {
+                _logger.LogWarning("Invalid workspace create payload: {@Dto}", dto);
+                return BadRequest("Name and OwnerEmail are required.");
+            }
+
+            var ws = new Workspace
+            {
+                Id = Guid.NewGuid(),
+                Name = dto.Name.Trim(),
+                OwnerEmail = dto.OwnerEmail.Trim().ToLower(),
+                CreatedAtUtc = DateTime.UtcNow
+            };
+
+            var member = new WorkspaceMember
+            {
+                WorkspaceId = ws.Id,
+                MemberEmail = ws.OwnerEmail,
+                Role = "owner"
+            };
+
+            _db.Workspaces.Add(ws);
+            _db.WorkspaceMembers.Add(member);
+
+            try
+            {
+                await _db.SaveChangesAsync();
+                _logger.LogInformation("Workspace created {@Workspace}", ws);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating workspace");
+                return StatusCode(500, "Could not create workspace.");
+            }
+
+            return CreatedAtAction(nameof(GetById), new { id = ws.Id },
+                new WorkspaceDto(ws.Id, ws.Name, ws.OwnerEmail, ws.CreatedAtUtc));
+        }
+
+        // GET api/workspace/{id}
+        [HttpGet("{id:guid}")]
+        public async Task<IActionResult> GetById(Guid id)
+        {
+            var ws = await _db.Workspaces.FindAsync(id);
+            if (ws == null) return NotFound();
+
+            return Ok(new WorkspaceDto(ws.Id, ws.Name, ws.OwnerEmail, ws.CreatedAtUtc));
+        }
+
+        // POST api/workspace/{id}/members
         [HttpPost("{id:guid}/members")]
         public async Task<IActionResult> AddMember(Guid id, [FromBody] AddMemberDto dto)
         {
-            var exists = await db.Workspaces.AnyAsync(w => w.Id == id);
-            if (!exists) return NotFound("Workspace not found.");
+            var ws = await _db.Workspaces.FindAsync(id);
+            if (ws == null) return NotFound("Workspace not found.");
 
-            var m = await db.WorkspaceMembers.FindAsync(id, dto.MemberEmail);
-            if (m is null)
-                db.WorkspaceMembers.Add(new WorkspaceMember { WorkspaceId = id, MemberEmail = dto.MemberEmail, Role = dto.Role });
-            else
-                m.Role = dto.Role;
+            if (string.IsNullOrWhiteSpace(dto.MemberEmail) || string.IsNullOrWhiteSpace(dto.Role))
+                return BadRequest("MemberEmail and Role are required.");
 
-            await db.SaveChangesAsync();
-            return NoContent();
-        }
+            var email = dto.MemberEmail.Trim().ToLower();
 
-        [HttpGet("{id:guid}/inventory")]
-        public async Task<IActionResult> GetInventory(Guid id, [FromQuery] string? holder, [FromQuery] string? location)
-        {
-            var q = db.WorkspaceItems
-                .Where(wi => wi.WorkspaceId == id)
-                .Select(wi => new
-                {
-                    wi.WorkspaceId,
-                    wi.ItemId,
-                    ItemName = wi.Item.Name,
-                    wi.Quantity,
-                    wi.Unit,
-                    wi.Holder,
-                    wi.LocationNote
-                })
-                .AsQueryable();
+            var exists = await _db.WorkspaceMembers.AnyAsync(m => m.WorkspaceId == id && m.MemberEmail == email);
+            if (exists) return Conflict("Member already exists in this workspace.");
 
-            if (!string.IsNullOrWhiteSpace(holder))
-                q = q.Where(x => x.Holder != null && x.Holder.Contains(holder));
-
-            if (!string.IsNullOrWhiteSpace(location))
-                q = q.Where(x => x.LocationNote != null && x.LocationNote.Contains(location));
-
-            var rows = await q.OrderBy(x => x.ItemName).ToListAsync();
-            return Ok(rows);
-        }
-
-        // POST /api/workspaces/{id}/inventory (add or update a WorkspaceItem row)
-        [HttpPost("{id:guid}/inventory")]
-        public async Task<IActionResult> UpsertInventory(Guid id, [FromBody] UpsertInventoryDto dto)
-        {
-            if (dto.Quantity < 0) return BadRequest("Quantity cannot be negative.");
-            var exists = await db.Items.AnyAsync(i => i.Id == dto.ItemId);
-            if (!exists) return NotFound("Item not found.");
-
-            var row = await db.WorkspaceItems
-                .FirstOrDefaultAsync(wi => wi.WorkspaceId == id && wi.ItemId == dto.ItemId);
-
-            if (row is null)
+            var member = new WorkspaceMember
             {
-                row = new WorkspaceItem
-                {
-                    WorkspaceId = id,
-                    ItemId = dto.ItemId,
-                    Quantity = dto.Quantity,
-                    Unit = dto.Unit,
-                    Holder = dto.Holder,
-                    LocationNote = dto.LocationNote
-                };
-                db.WorkspaceItems.Add(row);
+                WorkspaceId = id,
+                MemberEmail = email,
+                Role = dto.Role
+            };
+
+            _db.WorkspaceMembers.Add(member);
+
+            try
+            {
+                await _db.SaveChangesAsync();
+                _logger.LogInformation("Added member {Email} to workspace {WorkspaceId}", email, id);
             }
-            else
+            catch (Exception ex)
             {
-                row.Quantity = dto.Quantity;
-                row.Unit = dto.Unit;
-                row.Holder = dto.Holder;
-                row.LocationNote = dto.LocationNote;
+                _logger.LogError(ex, "Error adding member {Email} to workspace {WorkspaceId}", email, id);
+                return StatusCode(500, "Could not add member.");
             }
 
-            await db.SaveChangesAsync();
-            return Ok(row);
+            return Ok(member);
         }
-        public record UpsertInventoryDto(Guid ItemId, decimal Quantity, string? Unit, string? Holder, string? LocationNote);
+
+        // GET api/workspace/mine?email=you@example.com
+        [HttpGet("mine")]
+        public async Task<IActionResult> Mine([FromQuery] string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                return BadRequest("Email query parameter is required.");
+
+            var normEmail = email.Trim().ToLower();
+
+            var owned = await _db.Workspaces
+                .Where(w => w.OwnerEmail == normEmail)
+                .Select(w => new WorkspaceDto(w.Id, w.Name, w.OwnerEmail, w.CreatedAtUtc))
+                .ToListAsync();
+
+            var memberOf = await _db.WorkspaceMembers
+                .Where(m => m.MemberEmail == normEmail)
+                .Join(_db.Workspaces,
+                      m => m.WorkspaceId,
+                      w => w.Id,
+                      (m, w) => new WorkspaceDto(w.Id, w.Name, w.OwnerEmail, w.CreatedAtUtc))
+                .ToListAsync();
+
+            // remove duplicates if any (owner also in members)
+            var combined = owned.Concat(memberOf).GroupBy(w => w.Id).Select(g => g.First()).ToList();
+
+            return Ok(combined);
+        }
     }
 }

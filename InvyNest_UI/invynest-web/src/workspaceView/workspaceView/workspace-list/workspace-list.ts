@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Workspace, WorkspaceService } from '../../../services/workspace-service';
+import { WorkspaceDto, WorkspaceService } from '../../../services/workspace-service';
 
 @Component({
   selector: 'app-workspace-list',
@@ -9,18 +9,20 @@ import { Workspace, WorkspaceService } from '../../../services/workspace-service
   styleUrl: './workspace-list.scss'
 })
 export class WorkspaceList implements OnInit {
-  workspaces: Workspace[] = [];
+  workspaces: WorkspaceDto[] = [];
   loading = true;
   testEmail = 'you@example.com';
   constructor(private workspaceService: WorkspaceService) {}
 
   ngOnInit(): void {
-    this.workspaceService.getUserWorkspaces(this.testEmail).subscribe({
+    this.loading = true;
+    this.workspaceService.getMyWorkspaces(this.testEmail).subscribe({
       next: (data) => {
         this.workspaces = data;
         this.loading = false;
       },
-      error: () => {
+      error: (err) => {
+        console.error('Failed to load workspaces:', err);
         this.loading = false;
       }
     });
