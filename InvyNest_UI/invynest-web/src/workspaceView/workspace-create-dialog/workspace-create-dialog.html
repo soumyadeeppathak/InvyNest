@@ -1,0 +1,13 @@
+<p-dialog [(visible)]="display" modal="modal" [style]="{width: '350px'}" [closable]="false" [dismissableMask]="true">
+  <ng-template pTemplate="header">
+    Create Workspace
+  </ng-template>
+  <div>
+    <label for="wsName">Workspace Name</label>
+    <input id="wsName" type="text" pInputText [(ngModel)]="workspaceName" autofocus />
+  </div>
+  <ng-template pTemplate="footer">
+    <button pButton label="Cancel" class="p-button-text" (click)="close()"></button>
+    <button pButton label="Create" [disabled]="!workspaceName.trim()" (click)="create()"></button>
+  </ng-template>
+</p-dialog>

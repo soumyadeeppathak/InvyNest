@@ -1,30 +1,25 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { WorkspaceDto, WorkspaceService } from '../../../services/workspace-service';
+import { ButtonModule } from 'primeng/button';
+import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { WorkspaceCreateDialog } from '../../workspace-create-dialog/workspace-create-dialog';
 
 @Component({
   selector: 'app-workspace-list',
-  imports: [CommonModule],
+  imports: [CommonModule, ButtonModule, WorkspaceCreateDialog, ProgressSpinnerModule],
   templateUrl: './workspace-list.html',
   styleUrl: './workspace-list.scss'
 })
 export class WorkspaceList implements OnInit {
-  workspaces: WorkspaceDto[] = [];
-  loading = true;
   testEmail = 'you@example.com';
-  constructor(private workspaceService: WorkspaceService) {}
+  constructor(public workspaceService: WorkspaceService) { }
 
   ngOnInit(): void {
-    this.loading = true;
-    this.workspaceService.getMyWorkspaces(this.testEmail).subscribe({
-      next: (data) => {
-        this.workspaces = data;
-        this.loading = false;
-      },
-      error: (err) => {
-        console.error('Failed to load workspaces:', err);
-        this.loading = false;
-      }
-    });
+    this.workspaceService.fetchMyWorkspaces(this.testEmail);
   }
+
+  onCreateWorkspace = (name: string) => {
+    this.workspaceService.createWorkspace({ name, ownerEmail: this.testEmail }, this.testEmail);
+  };
 }

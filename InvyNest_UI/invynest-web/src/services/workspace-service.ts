@@ -1,5 +1,5 @@
 import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { catchError, Observable, throwError } from 'rxjs';
 
 //export const API_BASE_URL = '/api/Workspace';
@@ -25,43 +25,77 @@ export interface WorkspaceDto {
   providedIn: 'root'
 })
 export class WorkspaceService {
-
-  constructor(private http: HttpClient
-    //@Inject(API_BASE_URL) private apiBase: string,
-  ) {}
-
   private readonly base = `/api/workspace`;
+  private _workspaces = signal<WorkspaceDto[]>([]);
+  private _loading = signal(false);
+  private _error = signal<string | null>(null);
 
-  /** POST /api/workspace */
-  createWorkspace(payload: CreateWorkspaceDto): Observable<WorkspaceDto> {
-    return this.http
-      .post<WorkspaceDto>(`${this.base}`, payload)
-      .pipe(catchError(this.handleError));
+  constructor(private http: HttpClient) {}
+
+  get workspaces() {
+    return this._workspaces.asReadonly();
   }
 
-  /** POST /api/workspace/{id}/members */
-  addMember(workspaceId: string, payload: AddMemberDto): Observable<any> {
-    return this.http
-      .post<any>(`${this.base}/${encodeURIComponent(workspaceId)}/members`, payload)
-      .pipe(catchError(this.handleError));
+  get loading() {
+    return this._loading.asReadonly();
+  }
+
+  get error() {
+    return this._error.asReadonly();
   }
 
   /** GET /api/workspace/mine?email=you@example.com */
-  getMyWorkspaces(email: string): Observable<WorkspaceDto[]> {
+  fetchMyWorkspaces(email: string) {
+    this._loading.set(true);
+    this._error.set(null);
     const params = new HttpParams().set('email', email.trim().toLowerCase());
-    return this.http
-      .get<WorkspaceDto[]>(`${this.base}/mine`, { params })
-      .pipe(catchError(this.handleError));
+    this.http.get<WorkspaceDto[]>(`${this.base}/mine`, { params }).subscribe({
+      next: (data) => {
+        this._workspaces.set(data);
+        this._loading.set(false);
+      },
+      error: (err) => {
+        this._error.set(this.handleError(err));
+        this._loading.set(false);
+      }
+    });
   }
 
-  // ——— helpers ———
+  /** POST /api/workspace */
+  createWorkspace(payload: CreateWorkspaceDto, refreshEmail: string) {
+    this._loading.set(true);
+    this._error.set(null);
+    this.http.post<WorkspaceDto>(`${this.base}`, payload).subscribe({
+      next: () => {
+        this.fetchMyWorkspaces(refreshEmail);
+      },
+      error: (err) => {
+        this._error.set(this.handleError(err));
+        this._loading.set(false);
+      }
+    });
+  }
 
-  private handleError(err: HttpErrorResponse) {
-    // Surface server-provided messages when available (e.g., 400/404/409 from controller)
-    const message =
+  /** POST /api/workspace/{id}/members */
+  addMember(workspaceId: string, payload: AddMemberDto) {
+    this._loading.set(true);
+    this._error.set(null);
+    this.http.post<any>(`${this.base}/${encodeURIComponent(workspaceId)}/members`, payload).subscribe({
+      next: () => {
+        this._loading.set(false);
+      },
+      error: (err) => {
+        this._error.set(this.handleError(err));
+        this._loading.set(false);
+      }
+    });
+  }
+
+  private handleError(err: HttpErrorResponse): string {
+    return (
       (err.error && (err.error.title || err.error.detail || err.error)) ||
       err.message ||
-      'Request failed';
-    return throwError(() => new Error(message));
+      'Request failed'
+    );
   }
 }

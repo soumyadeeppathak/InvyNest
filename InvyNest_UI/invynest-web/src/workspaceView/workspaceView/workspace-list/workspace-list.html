@@ -1,5 +1,8 @@
+<button pButton label="Create Workspace" (click)="createDialog.open()"></button>
+<app-workspace-create-dialog #createDialog [output]="onCreateWorkspace"></app-workspace-create-dialog>
 <ul>
-  <li *ngFor="let workspace of workspaces">
+  <li *ngFor="let workspace of workspaceService.workspaces()">
     {{ workspace.name }}
   </li>
 </ul>
+<p-progressSpinner *ngIf="workspaceService.loading()"></p-progressSpinner>
