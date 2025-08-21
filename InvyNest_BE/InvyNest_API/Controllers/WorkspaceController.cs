@@ -141,5 +141,44 @@ namespace InvyNest_API.Controllers
 
             return Ok(combined);
         }
+
+        // DELETE api/workspace/{id}
+        [HttpDelete("{id:guid}")]
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            // Find the workspace
+            var workspace = await _db.Workspaces.FindAsync(id);
+            if (workspace == null)
+                return NotFound("Workspace not found.");
+
+            // Delete all WorkspaceMembers
+            var members = _db.WorkspaceMembers.Where(m => m.WorkspaceId == id);
+            _db.WorkspaceMembers.RemoveRange(members);
+
+            // Delete all WorkspaceItems and their Items
+            var workspaceItems = _db.WorkspaceItems.Where(wi => wi.WorkspaceId == id);
+            var itemIds = await workspaceItems.Select(wi => wi.ItemId).ToListAsync();
+            _db.WorkspaceItems.RemoveRange(workspaceItems);
+
+            // Delete all Items associated with this workspace
+            var itemsToDelete = _db.Items.Where(i => itemIds.Contains(i.Id));
+            _db.Items.RemoveRange(itemsToDelete);
+
+            // Finally, delete the workspace itself
+            _db.Workspaces.Remove(workspace);
+
+            try
+            {
+                await _db.SaveChangesAsync();
+                _logger.LogInformation("Workspace {WorkspaceId} and related data deleted.", id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting workspace {WorkspaceId}", id);
+                return StatusCode(500, "Could not delete workspace.");
+            }
+
+            return NoContent();
+        }
     }
 }

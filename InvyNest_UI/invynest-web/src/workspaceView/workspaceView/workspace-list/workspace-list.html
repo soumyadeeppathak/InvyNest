@@ -1,8 +1,32 @@
-<button pButton label="Create Workspace" (click)="createDialog.open()"></button>
+<div class="workspace-list-header">
+  <h2>Inventories</h2>
+</div>
+<div class="fab" (click)="createDialog.open()">
+  <i class="pi pi-plus"></i>
+</div>
 <app-workspace-create-dialog #createDialog [output]="onCreateWorkspace"></app-workspace-create-dialog>
-<ul>
-  <li *ngFor="let workspace of workspaceService.workspaces()">
-    {{ workspace.name }}
-  </li>
-</ul>
-<p-progressSpinner *ngIf="workspaceService.loading()"></p-progressSpinner>
+<div class="workspace-cards">
+  @for (workspace of workspaceService.workspaces(); track workspace.id) {
+    <div class="workspace-card">
+      <div class="workspace-card-title-row">
+        <span class="workspace-card-title">{{ workspace.name }}</span>
+        <i class="pi pi-angle-right arrow-icon"></i>
+      </div>
+      <div class="workspace-card-users">
+        <i class="pi pi-users"></i>
+        <i class="pi pi-users"></i>
+        <!-- Replace with dynamic user icons if available -->
+      </div>
+      <div class="workspace-card-sub">
+        <span class="workspace-card-category">Clothes</span>
+        <span class="workspace-card-count">8 items</span>
+      </div>
+      <div class="workspace-card-delete" (click)="onDeleteWorkspace(workspace.id)">
+        <i class="pi pi-trash"></i>
+      </div>
+    </div>
+  }
+</div>
+@if (workspaceService.loading()) {
+  <p-progressSpinner></p-progressSpinner>
+}

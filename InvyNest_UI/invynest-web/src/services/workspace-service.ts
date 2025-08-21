@@ -91,6 +91,21 @@ export class WorkspaceService {
     });
   }
 
+   /** DELETE /api/workspace/{id} */
+  deleteWorkspace(id: string, refreshEmail: string) {
+    this._loading.set(true);
+    this._error.set(null);
+    this.http.delete(`${this.base}/${encodeURIComponent(id)}`).subscribe({
+      next: () => {
+        this.fetchMyWorkspaces(refreshEmail);
+      },
+      error: (err) => {
+        this._error.set(this.handleError(err));
+        this._loading.set(false);
+      }
+    });
+  }
+
   private handleError(err: HttpErrorResponse): string {
     return (
       (err.error && (err.error.title || err.error.detail || err.error)) ||

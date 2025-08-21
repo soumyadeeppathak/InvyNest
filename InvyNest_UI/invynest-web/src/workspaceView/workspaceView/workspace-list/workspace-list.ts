@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { WorkspaceDto, WorkspaceService } from '../../../services/workspace-service';
 import { ButtonModule } from 'primeng/button';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { PrimeIcons, MenuItem } from 'primeng/api';
 import { WorkspaceCreateDialog } from '../../workspace-create-dialog/workspace-create-dialog';
 
 @Component({
@@ -21,5 +22,9 @@ export class WorkspaceList implements OnInit {
 
   onCreateWorkspace = (name: string) => {
     this.workspaceService.createWorkspace({ name, ownerEmail: this.testEmail }, this.testEmail);
+  };
+
+  onDeleteWorkspace = (id: string) => {
+    this.workspaceService.deleteWorkspace(id, this.testEmail);
   };
 }

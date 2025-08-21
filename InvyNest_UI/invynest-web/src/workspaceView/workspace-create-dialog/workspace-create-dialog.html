@@ -4,7 +4,7 @@
   </ng-template>
   <div>
     <label for="wsName">Workspace Name</label>
-    <input id="wsName" type="text" pInputText [(ngModel)]="workspaceName" autofocus />
+    <input id="wsName" type="text" pInputText [(ngModel)]="workspaceName" autofocus autocomplete="off"/>
   </div>
   <ng-template pTemplate="footer">
     <button pButton label="Cancel" class="p-button-text" (click)="close()"></button>
