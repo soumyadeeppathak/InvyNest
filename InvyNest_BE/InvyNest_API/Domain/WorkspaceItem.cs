@@ -1,7 +1,12 @@
-﻿namespace InvyNest_API.Domain
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace InvyNest_API.Domain
 {
     public class WorkspaceItem
     {
+        [Key]
+        public Guid Id { get; set; } = Guid.NewGuid();
+
         public Guid WorkspaceId { get; set; }
         public Workspace Workspace { get; set; } = null!;
 
@@ -10,10 +15,12 @@
 
         public decimal Quantity { get; set; }
         public string? Unit { get; set; } // e.g., pcs, kg
-        // NEW: who has it (email or name) — optional, no user table required
         public string? Holder { get; set; }
-
-        // NEW: where it is (free text: “Partner’s place”, “Car boot”, etc.)
         public string? LocationNote { get; set; }
+
+        // Parent-child hierarchy for items in a workspace
+        public Guid? ParentWorkspaceItemId { get; set; }
+        public WorkspaceItem? Parent { get; set; }
+        public ICollection<WorkspaceItem> Children { get; set; } = new List<WorkspaceItem>();
     }
 }

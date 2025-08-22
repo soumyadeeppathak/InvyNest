@@ -2,156 +2,213 @@
 using InvyNest_API.Domain;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 
 namespace InvyNest_API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class ItemsController(AppDbContext db) : Controller
+    public class ItemsController : ControllerBase
     {
-        // Create a new Item
+        private readonly ILogger<ItemsController> _logger;
+        private readonly AppDbContext _db;
+
+        public ItemsController(ILogger<ItemsController> logger, AppDbContext db)
+        {
+            _logger = logger;
+            _db = db;
+        }
+
+        // Add a new item (optionally as a child)
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreateItemDto dto)
+        public async Task<IActionResult> Create([FromBody] CreateWorkspaceItemDto dto)
         {
             if (string.IsNullOrWhiteSpace(dto.Name))
                 return BadRequest("Name is required.");
+            if (string.IsNullOrWhiteSpace(dto.Holder))
+                return BadRequest("Holder is required.");
 
+            // Create or get the Item entity
             var item = new Item { Name = dto.Name };
-            db.Items.Add(item);
-            await db.SaveChangesAsync();
-            return CreatedAtAction(nameof(Get), new { id = item.Id }, item);
-        }
+            _db.Items.Add(item);
+            await _db.SaveChangesAsync();
 
-        // Get single Item
-        [HttpGet("{id:guid}")]
-        public async Task<IActionResult> Get(Guid id)
-        {
-            var item = await db.Items.FindAsync(id);
-            return item is null ? NotFound() : Ok(item);
-        }
-
-        // Add/Update a child component with count
-        [HttpPost("{parentId:guid}/components")]
-        public async Task<IActionResult> UpsertComponent(Guid parentId, [FromBody] AddComponentDto dto)
-        {
-            if (parentId == dto.ChildItemId) return BadRequest("Parent and child cannot be the same.");
-            if (dto.ChildCount <= 0) return BadRequest("ChildCount must be > 0.");
-
-            var parentExists = await db.Items.AnyAsync(i => i.Id == parentId);
-            var childExists = await db.Items.AnyAsync(i => i.Id == dto.ChildItemId);
-            if (!parentExists || !childExists) return NotFound("Parent or child item not found.");
-
-            // Cycle check: would adding (parent -> child) create a loop?
-            var wouldCycle = await WouldCreateCycle(db, parentId, dto.ChildItemId);
-            if (wouldCycle) return BadRequest("This link would create a cycle in the BOM.");
-
-            var link = await db.ItemComponents
-                .FirstOrDefaultAsync(ic => ic.ParentItemId == parentId && ic.ChildItemId == dto.ChildItemId);
-
-            if (link is null)
+            WorkspaceItem? parent = null;
+            if (dto.ParentWorkspaceItemId.HasValue)
             {
-                link = new ItemComponent
+                parent = await _db.WorkspaceItems.FindAsync(dto.ParentWorkspaceItemId.Value);
+                if (parent == null)
+                    return BadRequest("Parent item not found.");
+                if (parent.Holder != dto.Holder)
+                    return BadRequest("Child item must have the same holder as the parent.");
+            }
+
+            var wsItem = new WorkspaceItem
+            {
+                WorkspaceId = dto.WorkspaceId,
+                ItemId = item.Id,
+                Quantity = dto.Quantity,
+                Unit = dto.Unit,
+                Holder = dto.Holder,
+                LocationNote = dto.LocationNote,
+                ParentWorkspaceItemId = dto.ParentWorkspaceItemId
+            };
+            _db.WorkspaceItems.Add(wsItem);
+            try
+            {
+                await _db.SaveChangesAsync();
+                if (parent != null)
                 {
-                    ParentItemId = parentId,
-                    ChildItemId = dto.ChildItemId,
-                    ChildCount = dto.ChildCount
-                };
-                db.ItemComponents.Add(link);
+                    await RecalculateParentQuantity(parent.Id);
+                }
+                _logger.LogInformation("WorkspaceItem created {@WorkspaceItem}", wsItem);
             }
-            else
+            catch (Exception ex)
             {
-                link.ChildCount = dto.ChildCount; // update
+                _logger.LogError(ex, "Error creating workspace item");
+                return StatusCode(500, "Could not create workspace item.");
             }
-
-            await db.SaveChangesAsync();
-            return Ok(link);
+            return CreatedAtAction(nameof(GetWorkspaceItem), new { id = wsItem.Id }, wsItem);
         }
 
-        // Remove a child component
-        [HttpDelete("{parentId:guid}/components/{childId:guid}")]
-        public async Task<IActionResult> RemoveComponent(Guid parentId, Guid childId)
+        // Get a single workspace item
+        [HttpGet("workspaceitem/{id:guid}")]
+        public async Task<IActionResult> GetWorkspaceItem(Guid id)
         {
-            var link = await db.ItemComponents
-                .FirstOrDefaultAsync(ic => ic.ParentItemId == parentId && ic.ChildItemId == childId);
-            if (link is null) return NotFound();
+            var wsItem = await _db.WorkspaceItems.Include(wi => wi.Item).FirstOrDefaultAsync(wi => wi.Id == id);
+            return wsItem is null ? NotFound() : Ok(wsItem);
+        }
 
-            db.ItemComponents.Remove(link);
-            await db.SaveChangesAsync();
+        // Update item name
+        [HttpPut("workspaceitem/{id:guid}/name")]
+        public async Task<IActionResult> UpdateName(Guid id, [FromBody] UpdateItemNameDto dto)
+        {
+            var wsItem = await _db.WorkspaceItems.Include(wi => wi.Item).FirstOrDefaultAsync(wi => wi.Id == id);
+            if (wsItem is null) return NotFound();
+            if (string.IsNullOrWhiteSpace(dto.Name)) return BadRequest("Name is required.");
+            wsItem.Item.Name = dto.Name;
+            try
+            {
+                await _db.SaveChangesAsync();
+                _logger.LogInformation("WorkspaceItem name updated for {Id}", id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating workspace item name for {Id}", id);
+                return StatusCode(500, "Could not update workspace item name.");
+            }
+            return Ok(wsItem);
+        }
+
+        // Update item quantity (only if no children)
+        [HttpPut("workspaceitem/{id:guid}/quantity")]
+        public async Task<IActionResult> UpdateQuantity(Guid id, [FromBody] UpdateItemQuantityDto dto)
+        {
+            var wsItem = await _db.WorkspaceItems.Include(wi => wi.Children).FirstOrDefaultAsync(wi => wi.Id == id);
+            if (wsItem is null) return NotFound();
+            if (wsItem.Children.Any())
+                return BadRequest("Cannot update quantity: item has children.");
+            wsItem.Quantity = dto.Quantity;
+            try
+            {
+                await _db.SaveChangesAsync();
+                if (wsItem.ParentWorkspaceItemId.HasValue)
+                {
+                    await RecalculateParentQuantity(wsItem.ParentWorkspaceItemId.Value);
+                }
+                _logger.LogInformation("WorkspaceItem quantity updated for {Id}", id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating workspace item quantity for {Id}", id);
+                return StatusCode(500, "Could not update workspace item quantity.");
+            }
+            return Ok(wsItem);
+        }
+
+        // Delete a workspace item
+        [HttpDelete("workspaceitem/{id:guid}")]
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            var wsItem = await _db.WorkspaceItems.Include(wi => wi.Parent).FirstOrDefaultAsync(wi => wi.Id == id);
+            if (wsItem is null) return NotFound();
+            var parentId = wsItem.ParentWorkspaceItemId;
+            _db.WorkspaceItems.Remove(wsItem);
+            try
+            {
+                await _db.SaveChangesAsync();
+                if (parentId.HasValue)
+                {
+                    await RecalculateParentQuantity(parentId.Value);
+                }
+                _logger.LogInformation("WorkspaceItem deleted {Id}", id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting workspace item {Id}", id);
+                return StatusCode(500, "Could not delete workspace item.");
+            }
             return NoContent();
         }
 
-        // Get flattened BOM with depth using Postgres recursive CTE
-        [HttpGet("{rootId:guid}/bom")]
-        public async Task<IActionResult> GetBom(Guid rootId)
+        // Get full hierarchy for a workspace or person
+        [HttpGet("hierarchy")] // ?workspaceId=...&holder=...
+        public async Task<IActionResult> GetHierarchy([FromQuery] Guid workspaceId, [FromQuery] string? holder)
         {
-            var sql = """
-                      WITH RECURSIVE bom AS (
-                        SELECT ic."ParentItemId", ic."ChildItemId", ic."ChildCount", 1 AS depth
-                        FROM "ItemComponents" ic
-                        WHERE ic."ParentItemId" = @root
-                        UNION ALL
-                        SELECT ic."ParentItemId", ic."ChildItemId", ic."ChildCount", b.depth + 1
-                        FROM "ItemComponents" ic
-                        JOIN bom b ON ic."ParentItemId" = b."ChildItemId"
-                      )
-                      SELECT b."ParentItemId", p."Name" as ParentName,
-                             b."ChildItemId", c."Name" as ChildName,
-                             b."ChildCount", b.depth
-                      FROM bom b
-                      JOIN "Items" p ON p."Id" = b."ParentItemId"
-                      JOIN "Items" c ON c."Id" = b."ChildItemId"
-                      ORDER BY depth, ParentName, ChildName;
-                      """;
-
-            var rows = await db.BomRows
-                .FromSqlRaw(sql, new NpgsqlParameter("root", rootId))
-                .ToListAsync();
-
-            return Ok(rows);
+            var query = _db.WorkspaceItems
+                .Include(wi => wi.Item)
+                .Include(wi => wi.Children)
+                .Where(wi => wi.WorkspaceId == workspaceId && wi.ParentWorkspaceItemId == null);
+            if (!string.IsNullOrWhiteSpace(holder))
+                query = query.Where(wi => wi.Holder == holder);
+            var roots = await query.ToListAsync();
+            var result = roots.Select(BuildHierarchyNode).ToList();
+            return Ok(result);
         }
 
-        // ——— helpers ———
-
-        private static async Task<bool> WouldCreateCycle(AppDbContext db, Guid newParentId, Guid newChildId)
+        // Helper: build hierarchy node recursively
+        private HierarchyNode BuildHierarchyNode(WorkspaceItem wsItem)
         {
-            // If newChild is (directly or indirectly) a parent of newParent → cycle.
-            var sql = """
-                        WITH RECURSIVE up AS (
-                          SELECT "ParentItemId", "ChildItemId"
-                          FROM "ItemComponents"
-                          WHERE "ParentItemId" = @start
-                          UNION ALL
-                          SELECT ic."ParentItemId", ic."ChildItemId"
-                          FROM "ItemComponents" ic
-                          JOIN up ON ic."ParentItemId" = up."ChildItemId"
-                        )
-                        SELECT 1 FROM up WHERE "ChildItemId" = @target LIMIT 1;
-                        """;
+            var children = wsItem.Children.Select(BuildHierarchyNode).ToList();
+            var quantity = children.Any() ? children.Sum(c => c.Quantity) : wsItem.Quantity;
+            return new HierarchyNode
+            {
+                Id = wsItem.Id,
+                Name = wsItem.Item.Name,
+                Quantity = quantity,
+                Unit = wsItem.Unit,
+                Holder = wsItem.Holder,
+                LocationNote = wsItem.LocationNote,
+                Children = children
+            };
+        }
 
-            var result = await db.Database
-                .SqlQueryRaw<int>(sql,
-                    new NpgsqlParameter("start", newChildId),
-                    new NpgsqlParameter("target", newParentId))
-                .ToListAsync();
-
-            return result.Count > 0;
+        // Helper: recalculate parent quantity recursively
+        private async Task RecalculateParentQuantity(Guid parentId)
+        {
+            var parent = await _db.WorkspaceItems.Include(wi => wi.Children).FirstOrDefaultAsync(wi => wi.Id == parentId);
+            if (parent == null) return;
+            parent.Quantity = parent.Children.Sum(c => c.Quantity);
+            await _db.SaveChangesAsync();
+            if (parent.ParentWorkspaceItemId.HasValue)
+            {
+                await RecalculateParentQuantity(parent.ParentWorkspaceItemId.Value);
+            }
         }
     }
 
     // DTOs
-    public record CreateItemDto(string Name);
+    public record CreateWorkspaceItemDto(Guid WorkspaceId, string Name, decimal Quantity, string? Unit, string Holder, string? LocationNote, Guid? ParentWorkspaceItemId);
+    public record UpdateItemNameDto(string Name);
+    public record UpdateItemQuantityDto(decimal Quantity);
 
-    public record AddComponentDto(Guid ChildItemId, int ChildCount);
-
-    // Query type for BOM
-    public class BomRow
+    public class HierarchyNode
     {
-        public Guid ParentItemId { get; set; }
-        public string ParentName { get; set; } = null!;
-        public Guid ChildItemId { get; set; }
-        public string ChildName { get; set; } = null!;
-        public int ChildCount { get; set; }
-        public int Depth { get; set; }
+        public Guid Id { get; set; }
+        public string Name { get; set; } = null!;
+        public decimal Quantity { get; set; }
+        public string? Unit { get; set; }
+        public string? Holder { get; set; }
+        public string? LocationNote { get; set; }
+        public List<HierarchyNode> Children { get; set; } = new();
     }
 }

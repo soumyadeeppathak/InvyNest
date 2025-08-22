@@ -1,7 +1,5 @@
-﻿using InvyNest_API.Controllers;
-using InvyNest_API.Domain;
+﻿using InvyNest_API.Domain;
 using Microsoft.EntityFrameworkCore;
-using System.Reflection.Emit;
 
 namespace InvyNest_API.Data
 {
@@ -12,7 +10,6 @@ namespace InvyNest_API.Data
         public DbSet<Item> Items => Set<Item>();
         public DbSet<ItemComponent> ItemComponents => Set<ItemComponent>();
         public DbSet<WorkspaceItem> WorkspaceItems => Set<WorkspaceItem>();
-        public DbSet<BomRow> BomRows => Set<BomRow>();
         public DbSet<WorkspaceMember> WorkspaceMembers => Set<WorkspaceMember>();
 
         protected override void OnModelCreating(ModelBuilder b)
@@ -32,7 +29,7 @@ namespace InvyNest_API.Data
                 .HasKey(ic => new { ic.ParentItemId, ic.ChildItemId });
 
             b.Entity<ItemComponent>()
-                .Property(ic => ic.ChildCount)         
+                .Property(ic => ic.ChildCount)
                 .IsRequired();
 
             b.Entity<ItemComponent>()
@@ -61,7 +58,7 @@ namespace InvyNest_API.Data
 
             // WorkspaceItem (bridge)
             b.Entity<WorkspaceItem>()
-                .HasKey(wi => new { wi.WorkspaceId, wi.ItemId });
+                .HasKey(wi => wi.Id);
 
             b.Entity<WorkspaceItem>()
                 .HasOne(wi => wi.Workspace)
@@ -73,18 +70,19 @@ namespace InvyNest_API.Data
                 .WithMany()
                 .HasForeignKey(wi => wi.ItemId);
 
+            // Parent-child hierarchy for WorkspaceItem
+            b.Entity<WorkspaceItem>()
+                .HasOne(wi => wi.Parent)
+                .WithMany(wi => wi.Children)
+                .HasForeignKey(wi => wi.ParentWorkspaceItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // NEW: helpful indexes for “who has what, where”
             b.Entity<WorkspaceItem>()
                 .HasIndex(wi => wi.Holder);
 
             b.Entity<WorkspaceItem>()
                 .HasIndex(wi => wi.LocationNote);
-
-            b.Entity<BomRow>(e =>
-            {
-                e.HasNoKey();
-                e.ToView(null); // not mapped to any table or view
-            });
 
             //workspacemember
             b.Entity<WorkspaceMember>()
