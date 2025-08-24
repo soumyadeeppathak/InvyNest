@@ -67,7 +67,7 @@ namespace InvyNest_API.Controllers
                 _logger.LogError(ex, "Error creating workspace item");
                 return StatusCode(500, "Could not create workspace item.");
             }
-            return CreatedAtAction(nameof(GetWorkspaceItem), new { id = wsItem.Id }, wsItem);
+            return Ok();
         }
 
         // Get a single workspace item
@@ -157,6 +157,7 @@ namespace InvyNest_API.Controllers
             var query = _db.WorkspaceItems
                 .Include(wi => wi.Item)
                 .Include(wi => wi.Children)
+                    .ThenInclude(child => child.Item)
                 .Where(wi => wi.WorkspaceId == workspaceId && wi.ParentWorkspaceItemId == null);
             if (!string.IsNullOrWhiteSpace(holder))
                 query = query.Where(wi => wi.Holder == holder);

@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { WorkspaceDto, WorkspaceService } from '../../../services/workspace-service';
 import { ButtonModule } from 'primeng/button';
@@ -14,7 +15,7 @@ import { WorkspaceCreateDialog } from '../../workspace-create-dialog/workspace-c
 })
 export class WorkspaceList implements OnInit {
   testEmail = 'you@example.com';
-  constructor(public workspaceService: WorkspaceService) { }
+  constructor(public workspaceService: WorkspaceService, private router: Router) { }
 
   ngOnInit(): void {
     this.workspaceService.fetchMyWorkspaces(this.testEmail);
@@ -27,4 +28,8 @@ export class WorkspaceList implements OnInit {
   onDeleteWorkspace = (id: string) => {
     this.workspaceService.deleteWorkspace(id, this.testEmail);
   };
+
+  onWorkspaceClick(id: string) {
+    this.router.navigate(['/workspaces', id]);
+  }
 }

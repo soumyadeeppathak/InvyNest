@@ -7,7 +7,7 @@
 <app-workspace-create-dialog #createDialog [output]="onCreateWorkspace"></app-workspace-create-dialog>
 <div class="workspace-cards">
   @for (workspace of workspaceService.workspaces(); track workspace.id) {
-    <div class="workspace-card">
+    <div class="workspace-card" (click)="onWorkspaceClick(workspace.id)">
       <div class="workspace-card-title-row">
         <span class="workspace-card-title">{{ workspace.name }}</span>
         <i class="pi pi-angle-right arrow-icon"></i>

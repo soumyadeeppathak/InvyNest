@@ -1,0 +1,30 @@
+<div class="workspace-detail">
+  <h2>Workspace Details</h2>
+  <div *ngIf="loading()">Loading members...</div>
+  <div *ngIf="!loading()">
+    <div *ngFor="let member of members()">
+      <div class="member-header">
+        <span>{{ member.holder }}</span>
+        <!-- Add member actions here -->
+      </div>
+      <div class="member-items">
+        <ng-container *ngFor="let item of member.items">
+          <div>
+            <span>{{ item.name }} ({{ item.quantity }})</span>
+            <button (click)="editItem(item.id, item.name)">Edit</button>
+            <button (click)="updateQuantity(item.id, item.quantity)">Update Quantity</button>
+            <button (click)="deleteItem(item.id)">Delete</button>
+            <button *ngIf="canAddChild(item)" (click)="addItem(member.holder, item.id)">Add Child Item</button>
+          </div>
+          <div *ngIf="item.children?.length" style="margin-left: 2em;">
+            <ng-container *ngFor="let child of item.children">
+              <span>{{ child.name }} ({{ child.quantity }})</span>
+              <!-- Repeat edit/delete/add child as above if needed -->
+            </ng-container>
+          </div>
+        </ng-container>
+        <button (click)="addItem(member.holder)">Add Item</button>
+      </div>
+    </div>
+  </div>
+</div>
