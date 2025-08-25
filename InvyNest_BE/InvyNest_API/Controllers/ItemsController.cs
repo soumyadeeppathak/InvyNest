@@ -122,7 +122,7 @@ namespace InvyNest_API.Controllers
                 _logger.LogError(ex, "Error updating workspace item quantity for {Id}", id);
                 return StatusCode(500, "Could not update workspace item quantity.");
             }
-            return Ok(wsItem);
+            return Ok();
         }
 
         // Delete a workspace item
