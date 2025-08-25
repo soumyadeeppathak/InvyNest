@@ -9,21 +9,42 @@
       </div>
       <div class="member-items">
         <ng-container *ngFor="let item of member.items">
-          <div>
-            <span>{{ item.name }} ({{ item.quantity }})</span>
-            <button (click)="editItem(item.id, item.name)">Edit</button>
-            <button (click)="updateQuantity(item.id, item.quantity)">Update Quantity</button>
-            <button (click)="deleteItem(item.id)">Delete</button>
-            <button *ngIf="canAddChild(item)" (click)="addItem(member.holder, item.id)">Add Child Item</button>
+          <div class="item-row" [ngClass]="{'has-children': item.children.length}">
+            <ng-container *ngIf="editingItemId !== item.id; else editMode">
+              <span class="item-name">{{ item.name }}</span>
+              <span class="item-qty">({{ item.quantity }})</span>
+              <button pButton pRipple type="button" icon="pi pi-pencil" class="p-button-rounded p-button-text p-button-sm" (click)="startEdit(item)" title="Edit"></button>
+              <button pButton pRipple type="button" icon="pi pi-trash" class="p-button-rounded p-button-text p-button-danger p-button-sm" (click)="deleteItem(item.id)" title="Delete"></button>
+              <button *ngIf="canAddChild(item)" pButton pRipple type="button" icon="pi pi-plus" class="p-button-rounded p-button-text p-button-success p-button-sm" (click)="addItem(member.holder, item.id)" title="Add Child Item"></button>
+            </ng-container>
+            <ng-template #editMode>
+              <input class="edit-input" [(ngModel)]="editName" (keydown.enter)="saveEdit(item)" (blur)="saveEdit(item)" placeholder="Name" />
+              <input class="edit-input qty" type="number" [(ngModel)]="editQuantity" (keydown.enter)="saveEdit(item)" (blur)="saveEdit(item)" placeholder="Qty" min="0" [disabled]="!!item.children && item.children.length > 0" />
+              <button pButton pRipple type="button" icon="pi pi-check" class="p-button-rounded p-button-text p-button-success p-button-sm" (click)="saveEdit(item)" title="Save"></button>
+              <button pButton pRipple type="button" icon="pi pi-times" class="p-button-rounded p-button-text p-button-danger p-button-sm" (click)="cancelEdit()" title="Cancel"></button>
+            </ng-template>
           </div>
-          <div *ngIf="item.children?.length" style="margin-left: 2em;">
+          <div *ngIf="item.children?.length" class="child-items">
             <ng-container *ngFor="let child of item.children">
-              <span>{{ child.name }} ({{ child.quantity }})</span>
-              <!-- Repeat edit/delete/add child as above if needed -->
+              <div class="item-row">
+                <ng-container *ngIf="editingItemId !== child.id; else childEditMode">
+                  <span class="item-name">{{ child.name }}</span>
+                  <span class="item-qty">({{ child.quantity }})</span>
+                  <button pButton pRipple type="button" icon="pi pi-pencil" class="p-button-rounded p-button-text p-button-sm" (click)="startEdit(child)" title="Edit"></button>
+                  <button pButton pRipple type="button" icon="pi pi-trash" class="p-button-rounded p-button-text p-button-danger p-button-sm" (click)="deleteItem(child.id)" title="Delete"></button>
+                </ng-container>
+                <ng-template #childEditMode>
+                  <input class="edit-input" [(ngModel)]="editName" (keydown.enter)="saveEdit(child)" (blur)="saveEdit(child)" placeholder="Name" />
+                  <input class="edit-input qty" type="number" [(ngModel)]="editQuantity" (keydown.enter)="saveEdit(child)" (blur)="saveEdit(child)" placeholder="Qty" min="0" />
+                  <button pButton pRipple type="button" icon="pi pi-check" class="p-button-rounded p-button-text p-button-success p-button-sm" (click)="saveEdit(child)" title="Save"></button>
+                  <button pButton pRipple type="button" icon="pi pi-times" class="p-button-rounded p-button-text p-button-danger p-button-sm" (click)="cancelEdit()" title="Cancel"></button>
+                </ng-template>
+              </div>
             </ng-container>
           </div>
+
         </ng-container>
-        <button (click)="addItem(member.holder)">Add Item</button>
+  <button pButton pRipple type="button" icon="pi pi-plus" class="add-item-btn p-button-sm p-button-success" (click)="addItem(member.holder)">Add Item</button>
       </div>
     </div>
   </div>

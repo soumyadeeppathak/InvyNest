@@ -1,4 +1,6 @@
 import { Component, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { ButtonModule } from 'primeng/button';
 import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ItemService, HierarchyNode, CreateWorkspaceItemDto, UpdateItemNameDto, UpdateItemQuantityDto } from '../../../services/item-service';
@@ -6,7 +8,7 @@ import { ItemService, HierarchyNode, CreateWorkspaceItemDto, UpdateItemNameDto, 
 @Component({
   selector: 'app-workspace-detail',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule, ButtonModule],
   templateUrl: './workspace-detail.html',
   styleUrl: './workspace-detail.scss',
 })
@@ -14,6 +16,10 @@ export class WorkspaceDetail implements OnInit {
   workspaceId!: string;
   members = signal<{ holder: string, items: HierarchyNode[] }[]>([]);
   loading = signal(true);
+  editingItemId: string | null = null;
+  editName: string = '';
+  editQuantity: number | null = null;
+
   constructor(private route: ActivatedRoute, private itemService: ItemService) {}
 
   ngOnInit() {
@@ -51,14 +57,35 @@ export class WorkspaceDetail implements OnInit {
     //   .subscribe(() => this.fetchMembersAndItems());
   }
 
-  editItem(itemId: string, name: string) {
-    // this.itemService.updateItemName(itemId, { Name: name })
-    //   .subscribe(() => this.fetchMembersAndItems());
+  startEdit(item: any) {
+    this.editingItemId = item.id;
+    this.editName = item.name;
+    this.editQuantity = item.quantity;
   }
 
-  updateQuantity(itemId: string, quantity: number) {
-    // this.itemService.updateItemQuantity(itemId, { Quantity: quantity })
-    //   .subscribe(() => this.fetchMembersAndItems());
+  saveEdit(item: any) {
+    if (this.editingItemId) {
+      const updateName = item.name !== this.editName;
+      const updateQuantity = item.quantity !== this.editQuantity;
+      const actions: Promise<any>[] = [];
+      if (updateName) {
+        actions.push(this.itemService.updateItemName(item.id, { name: this.editName }).toPromise());
+      }
+      if (updateQuantity) {
+        actions.push(this.itemService.updateItemQuantity(item.id, { quantity: this.editQuantity ?? 0 }).toPromise());
+      }
+      Promise.all(actions).then(() => {
+        this.fetchMembersAndItems();
+        this.editingItemId = null;
+      });
+      if (!updateName && !updateQuantity) {
+        this.editingItemId = null;
+      }
+    }
+  }
+
+  cancelEdit() {
+    this.editingItemId = null;
   }
 
   deleteItem(itemId: string) {
