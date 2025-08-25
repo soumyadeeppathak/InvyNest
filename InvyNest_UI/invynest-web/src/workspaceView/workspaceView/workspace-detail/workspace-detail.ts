@@ -19,6 +19,10 @@ export class WorkspaceDetail implements OnInit {
   editingItemId: string | null = null;
   editName: string = '';
   editQuantity: number | null = null;
+  addingItemParentId: string | null = null;
+  addingItemHolder: string | null = null;
+  newItemName: string = '';
+  newItemQuantity: number | null = null;
 
   constructor(private route: ActivatedRoute, private itemService: ItemService) {}
 
@@ -52,9 +56,34 @@ export class WorkspaceDetail implements OnInit {
   }
 
   addItem(holder: string, parentItemId?: string) {
-    // Open dialog or inline form to collect item details, then:
-    // this.itemService.createItem({ ...dto, WorkspaceId: this.workspaceId, Holder: holder, ParentWorkspaceItemId: parentItemId })
-    //   .subscribe(() => this.fetchMembersAndItems());
+    // Show inline form for adding item (parent or child)
+    this.addingItemHolder = holder;
+    this.addingItemParentId = parentItemId ?? null;
+    this.newItemName = '';
+    this.newItemQuantity = null;
+  }
+
+  saveNewItem() {
+    if (!this.addingItemHolder || !this.newItemName || this.newItemQuantity == null) return;
+    const dto: CreateWorkspaceItemDto = {
+      name: this.newItemName,
+      quantity: this.newItemQuantity,
+      workspaceId: this.workspaceId,
+      holder: this.addingItemHolder,
+      parentWorkspaceItemId: this.addingItemParentId || undefined
+    };
+    this.itemService.createItem(dto)
+      .subscribe(() => {
+        this.fetchMembersAndItems();
+        this.cancelAddItem();
+      });
+  }
+
+  cancelAddItem() {
+    this.addingItemHolder = null;
+    this.addingItemParentId = null;
+    this.newItemName = '';
+    this.newItemQuantity = null;
   }
 
   startEdit(item: any) {
@@ -89,12 +118,17 @@ export class WorkspaceDetail implements OnInit {
   }
 
   deleteItem(itemId: string) {
-    // this.itemService.deleteItem(itemId)
-    //   .subscribe(() => this.fetchMembersAndItems());
+    this.itemService.deleteItem(itemId)
+      .subscribe(() => this.fetchMembersAndItems());
   }
 
   canAddChild(item: HierarchyNode): boolean {
     // Only allow add if item has no children
     return !item.children || item.children.length === 0;
+  }
+
+  isParentItem(item: HierarchyNode, member: { holder: string, items: HierarchyNode[] }): boolean {
+    // Only top-level items in member.items are parents
+    return member.items.some(i => i.id === item.id);
   }
 }
