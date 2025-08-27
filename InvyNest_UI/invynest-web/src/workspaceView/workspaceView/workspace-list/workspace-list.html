@@ -1,8 +1,8 @@
 <div class="workspace-list-header">
   <h2>Inventories</h2>
-</div>
-<div class="fab" (click)="createDialog.open()">
-  <i class="pi pi-plus"></i>
+  <button pButton pRipple icon="pi pi-plus" class="p-button-rounded p-button-success add-workspace-btn" (click)="createDialog.open()" title="Add Workspace">
+    <span class="p-d-none p-d-md-inline p-ml-2">Add Workspace</span>
+  </button>
 </div>
 <app-workspace-create-dialog #createDialog [output]="onCreateWorkspace"></app-workspace-create-dialog>
 <div class="workspace-cards">

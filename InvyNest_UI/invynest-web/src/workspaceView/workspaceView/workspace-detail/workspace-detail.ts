@@ -4,11 +4,12 @@ import { ButtonModule } from 'primeng/button';
 import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ItemService, HierarchyNode, CreateWorkspaceItemDto, UpdateItemNameDto, UpdateItemQuantityDto } from '../../../services/item-service';
+import { CardModule } from 'primeng/card';
 
 @Component({
   selector: 'app-workspace-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, ButtonModule],
+  imports: [CommonModule, FormsModule, ButtonModule, CardModule],
   templateUrl: './workspace-detail.html',
   styleUrl: './workspace-detail.scss',
 })
