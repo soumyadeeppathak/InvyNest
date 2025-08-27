@@ -1,17 +1,18 @@
 <div class="workspace-dashboard p-grid p-dir-col p-md-flex-row">
   <!-- Mobile: show toggle button for sidebar -->
-  <button *ngIf="mobileMode" pButton pRipple icon="pi pi-bars" class="p-button-text p-mb-2" (click)="onToggleSidebar()">Menu</button>
+  @if (mobileMode) {
+    <button pButton pRipple icon="pi pi-bars" class="p-button-text p-mb-2" (click)="onToggleSidebar()">Menu</button>
+  }
   <!-- Drawer for mobile, sidebar for desktop, never both -->
-  <ng-container *ngIf="mobileMode; else desktopList">
+  @if (mobileMode) {
     <p-drawer [(visible)]="showSidebar" position="left" [baseZIndex]="10000">
       <app-workspace-list></app-workspace-list>
     </p-drawer>
-  </ng-container>
-  <ng-template #desktopList>
+  } @else {
     <div class="workspace-list-panel">
       <app-workspace-list></app-workspace-list>
     </div>
-  </ng-template>
+  }
   <div class="workspace-detail-panel p-flex-1">
     <router-outlet></router-outlet>
   </div>

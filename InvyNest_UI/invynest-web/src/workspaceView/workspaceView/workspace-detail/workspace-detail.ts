@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, ChangeDetectionStrategy, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { ActivatedRoute } from '@angular/router';
@@ -8,12 +8,15 @@ import { CardModule } from 'primeng/card';
 
 @Component({
   selector: 'app-workspace-detail',
-  standalone: true,
   imports: [CommonModule, FormsModule, ButtonModule, CardModule],
   templateUrl: './workspace-detail.html',
   styleUrl: './workspace-detail.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class WorkspaceDetail implements OnInit {
+  private route = inject(ActivatedRoute);
+  private itemService = inject(ItemService);
+  
   workspaceId!: string;
   members = signal<{ holder: string, items: HierarchyNode[] }[]>([]);
   loading = signal(true);
@@ -24,8 +27,6 @@ export class WorkspaceDetail implements OnInit {
   addingItemHolder: string | null = null;
   newItemName: string = '';
   newItemQuantity: number | null = null;
-
-  constructor(private route: ActivatedRoute, private itemService: ItemService) {}
 
   ngOnInit() {
     // Get workspaceId from route params

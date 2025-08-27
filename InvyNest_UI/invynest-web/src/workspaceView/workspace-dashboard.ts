@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { WorkspaceList } from './workspaceView/workspace-list/workspace-list';
 import { DrawerModule } from 'primeng/drawer';
 import { ButtonModule } from 'primeng/button';
@@ -7,10 +7,10 @@ import { RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-workspace-dashboard',
-  standalone: true,
   imports: [CommonModule, RouterModule, WorkspaceList, DrawerModule, ButtonModule],
   templateUrl: './workspace-dashboard.html',
   styleUrl: './workspace-dashboard.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class WorkspaceDashboard {
   showSidebar = false;

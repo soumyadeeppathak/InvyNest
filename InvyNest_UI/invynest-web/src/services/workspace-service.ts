@@ -1,5 +1,5 @@
 import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
 import { catchError, Observable, throwError } from 'rxjs';
 
 //export const API_BASE_URL = '/api/Workspace';
@@ -25,12 +25,12 @@ export interface WorkspaceDto {
   providedIn: 'root'
 })
 export class WorkspaceService {
+  private http = inject(HttpClient);
+  
   private readonly base = `/api/workspace`;
   private _workspaces = signal<WorkspaceDto[]>([]);
   private _loading = signal(false);
   private _error = signal<string | null>(null);
-
-  constructor(private http: HttpClient) {}
 
   get workspaces() {
     return this._workspaces.asReadonly();

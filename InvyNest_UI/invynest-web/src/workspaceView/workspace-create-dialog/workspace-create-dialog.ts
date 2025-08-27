@@ -12,10 +12,10 @@ import { FormsModule } from '@angular/forms';
   styleUrl: './workspace-create-dialog.scss'
 })
 export class WorkspaceCreateDialog {
+  @Input() output: (name: string) => void = () => {};
+  
   display = false;
   workspaceName = '';
-
-  @Input() output: (name: string) => void = () => {};
 
   open() {
     this.display = true;

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { WorkspaceDto, WorkspaceService } from '../../../services/workspace-service';
@@ -11,11 +11,14 @@ import { WorkspaceCreateDialog } from '../../workspace-create-dialog/workspace-c
   selector: 'app-workspace-list',
   imports: [CommonModule, ButtonModule, WorkspaceCreateDialog, ProgressSpinnerModule],
   templateUrl: './workspace-list.html',
-  styleUrl: './workspace-list.scss'
+  styleUrl: './workspace-list.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class WorkspaceList implements OnInit {
+  public workspaceService = inject(WorkspaceService);
+  private router = inject(Router);
+  
   testEmail = 'you@example.com';
-  constructor(public workspaceService: WorkspaceService, private router: Router) { }
 
   ngOnInit(): void {
     this.workspaceService.fetchMyWorkspaces(this.testEmail);
