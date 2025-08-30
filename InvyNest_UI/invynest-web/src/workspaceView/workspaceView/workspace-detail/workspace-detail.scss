@@ -26,6 +26,18 @@
   margin-bottom: 2rem;
 }
 
+// Member cards container with better spacing
+.members-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem; // Add consistent gap between member cards
+}
+
+.member-card-wrapper {
+  width: 100%;
+  max-width: 800px; // Limit card width for better readability
+}
+
 .add-member-btn {
   background: transparent !important;
   border-color: #2ee6a8 !important;
@@ -43,6 +55,41 @@
   border-radius: 12px;
   box-shadow: 0 2px 8px 0 #0005;
   border: none;
+  margin-bottom: 2rem !important; // Add more space between member cards
+}
+
+// Simple, compact member header styling
+.member-header-simple {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem; // Match the body content padding
+  background: #2a2a2a;
+  border-bottom: 1px solid #333;
+  margin: 0; // Remove negative margins to match body width
+}
+
+.member-icon-small {
+  color: #2ee6a8;
+  font-size: 0.9rem;
+  width: auto;
+  height: auto;
+}
+
+.member-name-simple {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  flex: 1;
+}
+
+.member-item-count-simple {
+  color: #bdbdbd;
+  font-size: 0.85rem;
+}
+
+.member-content {
+  padding: 1.25rem !important; // Slightly reduced to balance with smaller header
 }
 
 .item-row {
@@ -143,6 +190,23 @@
   .workspace-member-card {
     border-radius: 8px;
     padding: 0.5rem 0.2rem;
+    margin-bottom: 1.5rem !important; // Slightly less spacing on mobile
+  }
+  .member-header-simple {
+    padding: 0.5rem 1rem; // Match mobile content padding
+    margin: 0; // Remove negative margins on mobile too
+  }
+  .member-name-simple {
+    font-size: 0.95rem;
+  }
+  .member-item-count-simple {
+    font-size: 0.8rem;
+  }
+  .member-content {
+    padding: 1rem !important; // Reduced mobile content padding
+  }
+  .members-container {
+    gap: 1.5rem; // Reduce gap on mobile for better space utilization
   }
   .item-row {
     font-size: 0.98rem;

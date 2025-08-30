@@ -18,14 +18,21 @@
     <div class="p-mb-4">Loading members...</div>
   }
   @if (!loading()) {
-    <div class="p-grid p-dir-col p-gap-4">
+    <div class="members-container">
       @for (member of members(); track member.holder) {
-        <div class="p-col-12 p-md-8 p-lg-6">
-          <p-card class="workspace-member-card p-mb-4">
+        <div class="member-card-wrapper">
+          <p-card class="workspace-member-card">
             <ng-template pTemplate="header">
-              <span class="p-text-bold p-text-lg">{{ member.holder }}</span>
+              <div class="member-header-simple">
+                <i class="pi pi-user member-icon-small"></i>
+                <span class="member-name-simple">{{ member.holder }}</span>
+                <span class="member-item-count-simple">
+                  ({{ member.items.length }} {{ member.items.length === 1 ? 'item' : 'items' }})
+                </span>
+              </div>
             </ng-template>
-            <div class="p-flex p-flex-column p-gap-2">
+            <div class="member-content p-p-4">
+              <div class="p-flex p-flex-column p-gap-2">
               @for (item of member.items; track item.id) {
                 <div class="item-row p-d-flex p-jc-between p-ai-center p-mb-2">
                   <div class="p-d-flex p-ai-center">
@@ -76,6 +83,7 @@
               @if (!addingItemHolder || addingItemHolder !== member.holder) {
                 <button pButton pRipple type="button" icon="pi pi-plus" class="add-item-btn p-button-sm p-button-success p-mt-2" (click)="addItem(member.holder)">Add Item</button>
               }
+              </div>
             </div>
           </p-card>
         </div>
