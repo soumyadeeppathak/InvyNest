@@ -86,7 +86,7 @@ namespace InvyNest_API.Data
 
             //workspacemember
             b.Entity<WorkspaceMember>()
-                .HasKey(x => new { x.WorkspaceId, x.MemberEmail });
+                .HasKey(x => x.Id);
 
             b.Entity<WorkspaceMember>()
                 .HasOne(x => x.Workspace)
@@ -94,10 +94,19 @@ namespace InvyNest_API.Data
                 .HasForeignKey(x => x.WorkspaceId);
 
             b.Entity<WorkspaceMember>()
-                .Property(x => x.MemberEmail).HasMaxLength(160).IsRequired();
+                .Property(x => x.MemberEmail).HasMaxLength(160);
+
+            b.Entity<WorkspaceMember>()
+                .Property(x => x.MemberName).HasMaxLength(120).IsRequired();
 
             b.Entity<WorkspaceMember>()
                 .Property(x => x.Role).HasMaxLength(30).IsRequired();
+
+            // Add unique constraint for non-null email per workspace
+            b.Entity<WorkspaceMember>()
+                .HasIndex(x => new { x.WorkspaceId, x.MemberEmail })
+                .IsUnique()
+                .HasFilter("\"MemberEmail\" IS NOT NULL");
         }
     }
 }

@@ -18,6 +18,26 @@
   min-height: 350px;
 }
 
+// Header styling
+.workspace-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.add-member-btn {
+  background: transparent !important;
+  border-color: #2ee6a8 !important;
+  color: #2ee6a8 !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+.add-member-btn:hover {
+  background: #2ee6a8 !important;
+  border-color: #2ee6a8 !important;
+  color: #fff !important;
+}
+
 .workspace-member-card {
   background: #232323;
   border-radius: 12px;
@@ -107,6 +127,18 @@
   .workspace-detail {
     padding: 1rem 0.2rem;
     min-height: 200px;
+  }
+  .workspace-header {
+    margin-bottom: 1rem;
+    h2 {
+      font-size: 1.5rem;
+    }
+  }
+  .add-member-btn {
+    padding: 0.5rem !important;
+    span {
+      display: none !important;
+    }
   }
   .workspace-member-card {
     border-radius: 8px;

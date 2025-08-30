@@ -1,0 +1,68 @@
+<p-dialog 
+  header="Add Member" 
+  [(visible)]="display" 
+  [modal]="true" 
+  [style]="{width: '400px'}"
+  [draggable]="false" 
+  [resizable]="false">
+  
+  <div class="p-fluid">
+    <div class="p-field p-mb-3">
+      <label for="memberName">Member Name</label>
+      <input 
+        id="memberName"
+        type="text" 
+        pInputText 
+        [(ngModel)]="memberName" 
+        placeholder="Enter member name"
+        [class.p-invalid]="nameError"
+        autocomplete="name" />
+      @if (nameError) {
+        <small class="p-error">{{ nameError }}</small>
+      }
+    </div>
+    
+    <div class="p-field p-mb-3">
+      <label for="memberEmail">Email (Optional)</label>
+      <input 
+        id="memberEmail"
+        type="email" 
+        pInputText 
+        [(ngModel)]="memberEmail" 
+        placeholder="Enter email address"
+        [class.p-invalid]="emailError"
+        autocomplete="email" />
+      @if (emailError) {
+        <small class="p-error">{{ emailError }}</small>
+      }
+    </div>
+    
+    <div class="p-field-note p-mb-3">
+      <small class="p-text-secondary">
+        <i class="pi pi-info-circle"></i> 
+        Either name or email must be provided
+      </small>
+    </div>
+  </div>
+  
+  <ng-template pTemplate="footer">
+    <button 
+      pButton 
+      pRipple 
+      type="button" 
+      label="Cancel" 
+      icon="pi pi-times" 
+      class="p-button-text" 
+      (click)="close()">
+    </button>
+    <button 
+      pButton 
+      pRipple 
+      type="button" 
+      label="Add Member" 
+      icon="pi pi-user-plus" 
+      class="p-button-success" 
+      (click)="addMember()">
+    </button>
+  </ng-template>
+</p-dialog>

@@ -6,19 +6,26 @@ import { catchError, Observable, throwError } from 'rxjs';
 
 export interface CreateWorkspaceDto {
   name: string;
-  ownerEmail: string;
+  ownerEmail: string; // Required - will use default "you@example.com" if not provided
 }
 
 export interface AddMemberDto {
-  memberEmail: string;
+  memberName: string;
+  memberEmail: string | null;
   role: string; // "owner" | "editor" | "viewer"
 }
 
 export interface WorkspaceDto {
   id: string;
   name: string;
-  ownerEmail: string;
+  ownerEmail: string | null;
   createdAtUtc: string; // ISO
+}
+
+export interface WorkspaceMemberDto {
+  memberEmail: string | null;
+  memberName: string;
+  role: string; // "owner" | "editor" | "viewer"
 }
 
 @Injectable({
@@ -45,7 +52,7 @@ export class WorkspaceService {
   }
 
   /** GET /api/workspace/mine?email=you@example.com */
-  fetchMyWorkspaces(email: string) {
+  fetchMyWorkspaces(email: string = 'you@example.com') {
     this._loading.set(true);
     this._error.set(null);
     const params = new HttpParams().set('email', email.trim().toLowerCase());
@@ -62,12 +69,12 @@ export class WorkspaceService {
   }
 
   /** POST /api/workspace */
-  createWorkspace(payload: CreateWorkspaceDto, refreshEmail: string) {
+  createWorkspace(payload: CreateWorkspaceDto) {
     this._loading.set(true);
     this._error.set(null);
     this.http.post<WorkspaceDto>(`${this.base}`, payload).subscribe({
       next: () => {
-        this.fetchMyWorkspaces(refreshEmail);
+        this.fetchMyWorkspaces(); // Call with default email
       },
       error: (err) => {
         this._error.set(this.handleError(err));
@@ -77,27 +84,22 @@ export class WorkspaceService {
   }
 
   /** POST /api/workspace/{id}/members */
-  addMember(workspaceId: string, payload: AddMemberDto) {
-    this._loading.set(true);
-    this._error.set(null);
-    this.http.post<any>(`${this.base}/${encodeURIComponent(workspaceId)}/members`, payload).subscribe({
-      next: () => {
-        this._loading.set(false);
-      },
-      error: (err) => {
-        this._error.set(this.handleError(err));
-        this._loading.set(false);
-      }
-    });
+  addMember(workspaceId: string, payload: AddMemberDto): Observable<any> {
+    return this.http.post<any>(`${this.base}/${encodeURIComponent(workspaceId)}/members`, payload);
+  }
+
+  /** GET /api/workspace/{id}/members */
+  getWorkspaceMembers(workspaceId: string): Observable<WorkspaceMemberDto[]> {
+    return this.http.get<WorkspaceMemberDto[]>(`${this.base}/${encodeURIComponent(workspaceId)}/members`);
   }
 
    /** DELETE /api/workspace/{id} */
-  deleteWorkspace(id: string, refreshEmail: string) {
+  deleteWorkspace(id: string) {
     this._loading.set(true);
     this._error.set(null);
     this.http.delete(`${this.base}/${encodeURIComponent(id)}`).subscribe({
       next: () => {
-        this.fetchMyWorkspaces(refreshEmail);
+        this.fetchMyWorkspaces(); // Call with default email
       },
       error: (err) => {
         this._error.set(this.handleError(err));

@@ -11,7 +11,7 @@ namespace InvyNest_API.Domain
 
         // Simple owner for now; real auth will come later
         [MaxLength(120)]
-        public string OwnerEmail { get; set; } = null!;
+        public string? OwnerEmail { get; set; }
 
         public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 

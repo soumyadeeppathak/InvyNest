@@ -3,6 +3,7 @@ using System;
 using InvyNest_API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace InvyNest_API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250830083804_AddMemberNameToWorkspaceMember")]
+    partial class AddMemberNameToWorkspaceMember
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -76,6 +79,7 @@ namespace InvyNest_API.Migrations
                         .HasColumnType("character varying(120)");
 
                     b.Property<string>("OwnerEmail")
+                        .IsRequired()
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
 
@@ -128,8 +132,7 @@ namespace InvyNest_API.Migrations
 
             modelBuilder.Entity("InvyNest_API.Domain.WorkspaceMember", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<Guid>("WorkspaceId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("MemberEmail")
@@ -138,22 +141,14 @@ namespace InvyNest_API.Migrations
 
                     b.Property<string>("MemberName")
                         .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
+                        .HasColumnType("text");
 
                     b.Property<string>("Role")
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
-                    b.Property<Guid>("WorkspaceId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("WorkspaceId", "MemberEmail")
-                        .IsUnique()
-                        .HasFilter("\"MemberEmail\" IS NOT NULL");
+                    b.HasKey("WorkspaceId", "MemberEmail");
 
                     b.ToTable("WorkspaceMembers");
                 });

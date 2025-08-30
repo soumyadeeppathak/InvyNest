@@ -4,11 +4,13 @@ import { ButtonModule } from 'primeng/button';
 import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ItemService, HierarchyNode, CreateWorkspaceItemDto, UpdateItemNameDto, UpdateItemQuantityDto } from '../../../services/item-service';
+import { WorkspaceService, AddMemberDto, WorkspaceMemberDto } from '../../../services/workspace-service';
 import { CardModule } from 'primeng/card';
+import { WorkspaceAddMemberDialog } from '../../workspace-add-member-dialog/workspace-add-member-dialog';
 
 @Component({
   selector: 'app-workspace-detail',
-  imports: [CommonModule, FormsModule, ButtonModule, CardModule],
+  imports: [CommonModule, FormsModule, ButtonModule, CardModule, WorkspaceAddMemberDialog],
   templateUrl: './workspace-detail.html',
   styleUrl: './workspace-detail.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -16,6 +18,7 @@ import { CardModule } from 'primeng/card';
 export class WorkspaceDetail implements OnInit {
   private route = inject(ActivatedRoute);
   private itemService = inject(ItemService);
+  private workspaceService = inject(WorkspaceService);
   
   workspaceId!: string;
   members = signal<{ holder: string, items: HierarchyNode[] }[]>([]);
@@ -41,19 +44,51 @@ export class WorkspaceDetail implements OnInit {
 
   fetchMembersAndItems() {
     this.loading.set(true);
-    // Example: fetch holders (members) for this workspace, then for each, fetch hierarchy
-    // Replace with actual member fetching logic as needed
-    const holders = ['Taniya']; // TODO: Replace with real member list
-    Promise.all(
-      holders.map(holder =>
-        this.itemService.getHierarchy(this.workspaceId, holder).toPromise().then((items: HierarchyNode[] | null | undefined) => ({
-          holder,
-          items: items ?? []
-        }))
-      )
-    ).then(results => {
-      this.members.set(results);
-      this.loading.set(false);
+    
+    // First fetch the workspace members
+    this.workspaceService.getWorkspaceMembers(this.workspaceId).subscribe({
+      next: (workspaceMembers: WorkspaceMemberDto[]) => {
+        // Extract member names, using memberName or fallback to email
+        const memberNames = workspaceMembers.map(member => 
+          member.memberName || member.memberEmail || 'Unknown Member'
+        );
+        
+        // For each member, fetch their items
+        Promise.all(
+          memberNames.map(memberName =>
+            this.itemService.getHierarchy(this.workspaceId, memberName)
+              .toPromise()
+              .then((items: HierarchyNode[] | null | undefined) => ({
+                holder: memberName,
+                items: items ?? []
+              }))
+          )
+        ).then(results => {
+          this.members.set(results);
+          this.loading.set(false);
+        }).catch(error => {
+          console.error('Error fetching items for members:', error);
+          this.loading.set(false);
+        });
+      },
+      error: (error) => {
+        console.error('Error fetching workspace members:', error);
+        // Fallback to hardcoded member if API fails
+        const holders = ['DevLocal1']; // Default user as mentioned in backend
+        Promise.all(
+          holders.map(holder =>
+            this.itemService.getHierarchy(this.workspaceId, holder)
+              .toPromise()
+              .then((items: HierarchyNode[] | null | undefined) => ({
+                holder,
+                items: items ?? []
+              }))
+          )
+        ).then(results => {
+          this.members.set(results);
+          this.loading.set(false);
+        });
+      }
     });
   }
 
@@ -133,4 +168,22 @@ export class WorkspaceDetail implements OnInit {
     // Only top-level items in member.items are parents
     return member.items.some(i => i.id === item.id);
   }
+
+  onAddMember = (memberName: string, memberEmail: string | null) => {
+    const addMemberDto: AddMemberDto = {
+      memberName,
+      memberEmail,
+      role: 'editor' // Default role as mentioned
+    };
+    
+    this.workspaceService.addMember(this.workspaceId, addMemberDto).subscribe({
+      next: () => {
+        // Refresh the members list to show the new member
+        this.fetchMembersAndItems();
+      },
+      error: (error: any) => {
+        console.error('Error adding member:', error);
+      }
+    });
+  };
 }

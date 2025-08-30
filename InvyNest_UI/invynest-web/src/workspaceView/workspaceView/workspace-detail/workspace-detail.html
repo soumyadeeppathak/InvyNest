@@ -1,6 +1,19 @@
 
 <div class="workspace-detail p-p-3 p-grid p-dir-col">
-  <h2 class="p-mb-4 p-text-3xl">Workspace Details</h2>
+  <div class="workspace-header p-d-flex p-jc-between p-ai-center p-mb-4">
+    <h2 class="p-text-3xl p-m-0">Workspace Details</h2>
+    <button 
+      pButton 
+      pRipple 
+      type="button" 
+      icon="pi pi-user-plus" 
+      class="p-button-outlined p-button-success add-member-btn" 
+      (click)="addMemberDialog.open()" 
+      title="Add Member">
+      <span class="p-d-none p-d-md-inline p-ml-2">Add Member</span>
+    </button>
+  </div>
+  <app-workspace-add-member-dialog #addMemberDialog [output]="onAddMember"></app-workspace-add-member-dialog>
   @if (loading()) {
     <div class="p-mb-4">Loading members...</div>
   }

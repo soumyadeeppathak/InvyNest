@@ -17,19 +17,17 @@ import { WorkspaceCreateDialog } from '../../workspace-create-dialog/workspace-c
 export class WorkspaceList implements OnInit {
   public workspaceService = inject(WorkspaceService);
   private router = inject(Router);
-  
-  testEmail = 'you@example.com';
 
   ngOnInit(): void {
-    this.workspaceService.fetchMyWorkspaces(this.testEmail);
+    this.workspaceService.fetchMyWorkspaces('you@example.com');
   }
 
   onCreateWorkspace = (name: string) => {
-    this.workspaceService.createWorkspace({ name, ownerEmail: this.testEmail }, this.testEmail);
+    this.workspaceService.createWorkspace({ name, ownerEmail: 'you@example.com' });
   };
 
   onDeleteWorkspace = (id: string) => {
-    this.workspaceService.deleteWorkspace(id, this.testEmail);
+    this.workspaceService.deleteWorkspace(id);
   };
 
   onWorkspaceClick(id: string) {
